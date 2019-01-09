@@ -1,5 +1,8 @@
 package net.runelite.client.plugins.profiles;
 
+import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.Client;
+import net.runelite.api.GameState;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.PluginPanel;
 import javax.inject.Inject;
@@ -8,14 +11,19 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.Arrays;
 
+@Slf4j
 class ProfilesPanel extends PluginPanel
 {
+	@Inject
+	private Client client;
+
 	private final ProfilesConfig config;
 
 	private GridBagConstraints c;
-	private int gridy = 0;
 
 	@Inject
 	public ProfilesPanel(ProfilesConfig config)
@@ -107,9 +115,10 @@ class ProfilesPanel extends PluginPanel
 		btnAddAccount.setMinimumSize(MINIMUM_SIZE);
 		btnAddAccount.addActionListener(e ->
 		{
-			this.addAccount(txtAccountLabel.getText() +
-				":" +
-				txtAccountLogin.getText());
+			String data = txtAccountLabel.getText() + ":" + txtAccountLogin.getText();
+			this.addAccount(data);
+
+			this.config.profilesData(data + "\n");
 
 			txtAccountLabel.setText("Account Label");
 			txtAccountLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
@@ -131,12 +140,50 @@ class ProfilesPanel extends PluginPanel
 		panel.setLayout(new GridLayout(2, 1));
 		panel.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		panel.setPreferredSize(new Dimension(PluginPanel.PANEL_WIDTH - 20, 40));
+		panel.setBorder(new EmptyBorder(5, 5, 5, 5));
 
 		JLabel label = new JLabel(parts[0]);
 		panel.add(label);
 
 		JLabel login = new JLabel(parts[1]);
 		panel.add(login);
+
+		panel.addMouseListener(new MouseAdapter()
+		{
+			@Override
+			public void mousePressed(MouseEvent e)
+			{
+				if (SwingUtilities.isLeftMouseButton(e))
+				{
+					GameState gameState = client.getGameState();
+					if (gameState != GameState.LOGIN_SCREEN)
+					{
+						return;
+					}
+					String login = ((JLabel) panel.getComponent(1)).getText();
+					client.setUsername(login);
+				}
+				else
+				{
+					// TODO: Improve deletion method
+					remove(panel);
+					revalidate();
+					repaint();
+				}
+			}
+
+			@Override
+			public void mouseEntered(MouseEvent e)
+			{
+				panel.setBackground(ColorScheme.DARKER_GRAY_HOVER_COLOR);
+			}
+
+			@Override
+			public void mouseExited(MouseEvent e)
+			{
+				panel.setBackground(ColorScheme.DARKER_GRAY_COLOR);
+			}
+		});
 
 		add(panel, c);
 

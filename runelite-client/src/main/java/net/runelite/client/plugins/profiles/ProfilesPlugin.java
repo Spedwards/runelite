@@ -1,9 +1,7 @@
 package net.runelite.client.plugins.profiles;
 
 import com.google.inject.Provides;
-import net.runelite.api.events.SessionOpen;
 import net.runelite.client.config.ConfigManager;
-import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
@@ -40,6 +38,9 @@ public class ProfilesPlugin extends Plugin
 	{
 		panel = injector.getInstance(ProfilesPanel.class);
 
+		String data = config.profilesData();
+		panel.addAccounts(data);
+
 		final BufferedImage icon = ImageUtil.getResourceStreamFromClass(getClass(), "profiles_icon.png");
 
 		navButton = NavigationButton.builder()
@@ -56,12 +57,5 @@ public class ProfilesPlugin extends Plugin
 	protected void shutDown()
 	{
 		clientToolbar.removeNavigation(navButton);
-	}
-
-	@Subscribe
-	public void onSessionOpen(SessionOpen event)
-	{
-		String data = config.profilesData();
-		panel.addAccounts(data);
 	}
 }
