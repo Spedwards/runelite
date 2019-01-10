@@ -24,42 +24,47 @@
  */
 package net.runelite.client.plugins.profiles;
 
-import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Client;
-import net.runelite.client.ui.ColorScheme;
-import net.runelite.client.ui.PluginPanel;
-import javax.inject.Inject;
-import javax.swing.JButton;
-import javax.swing.JTextField;
-import javax.swing.border.EmptyBorder;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.ArrayList;
+import javax.inject.Inject;
+import javax.swing.JButton;
+import javax.swing.JPasswordField;
+import javax.swing.JTextField;
+import javax.swing.border.EmptyBorder;
+import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.Client;
+import net.runelite.client.ui.ColorScheme;
+import net.runelite.client.ui.PluginPanel;
 
 @Slf4j
 class ProfilesPanel extends PluginPanel
 {
-	@Inject
-	private Client client;
+	private static final String ACCOUNT_USERNAME = "Account username";
+	private static final String ACCOUNT_LABEL = "Account Label";
+	private static final Dimension PREFERRED_SIZE = new Dimension(PluginPanel.PANEL_WIDTH - 20, 30);
+	private static final Dimension MINIMUM_SIZE = new Dimension(0, 30);
 
+	private final Client client;
 	private static ProfilesConfig profilesConfig;
 
-	private List<ProfilePanel> profiles;
+	private final JTextField txtAccountLabel = new JTextField(ACCOUNT_LABEL);
+	private final JPasswordField txtAccountLogin = new JPasswordField(ACCOUNT_USERNAME);
+	private final List<ProfilePanel> profiles = new ArrayList<>();
 	private GridBagConstraints c;
 
 	@Inject
-	public ProfilesPanel(ProfilesConfig config)
+	public ProfilesPanel(Client client, ProfilesConfig config)
 	{
 		super();
+		this.client = client;
 		profilesConfig = config;
-
-		profiles = new ArrayList<>();
 
 		setBorder(new EmptyBorder(18, 10, 0, 10));
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
@@ -73,10 +78,6 @@ class ProfilesPanel extends PluginPanel
 		c.weighty = 0;
 		c.insets = new Insets(0, 0, 3, 0);
 
-		final Dimension PREFERRED_SIZE = new Dimension(PluginPanel.PANEL_WIDTH - 20, 30);
-		final Dimension MINIMUM_SIZE = new Dimension(0, 30);
-
-		JTextField txtAccountLabel = new JTextField("Account Label");
 		txtAccountLabel.setPreferredSize(PREFERRED_SIZE);
 		txtAccountLabel.setForeground(ColorScheme.MEDIUM_GRAY_COLOR);
 		txtAccountLabel.setBackground(ColorScheme.DARKER_GRAY_COLOR);
@@ -86,7 +87,7 @@ class ProfilesPanel extends PluginPanel
 			@Override
 			public void focusGained(FocusEvent e)
 			{
-				if (txtAccountLabel.getText().equals("Account Label"))
+				if (txtAccountLabel.getText().equals(ACCOUNT_LABEL))
 				{
 					txtAccountLabel.setText("");
 					txtAccountLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
@@ -99,7 +100,7 @@ class ProfilesPanel extends PluginPanel
 				if (txtAccountLabel.getText().isEmpty())
 				{
 					txtAccountLabel.setForeground(ColorScheme.MEDIUM_GRAY_COLOR);
-					txtAccountLabel.setText("Account Label");
+					txtAccountLabel.setText(ACCOUNT_LABEL);
 				}
 			}
 		});
@@ -107,7 +108,8 @@ class ProfilesPanel extends PluginPanel
 		add(txtAccountLabel, c);
 		c.gridy++;
 
-		JTextField txtAccountLogin = new JTextField("Account Login");
+		// Do not hide username characters until they focus or if in streamer mode
+		txtAccountLogin.setEchoChar((char) 0);
 		txtAccountLogin.setPreferredSize(PREFERRED_SIZE);
 		txtAccountLogin.setForeground(ColorScheme.MEDIUM_GRAY_COLOR);
 		txtAccountLogin.setBackground(ColorScheme.DARKER_GRAY_COLOR);
@@ -117,9 +119,13 @@ class ProfilesPanel extends PluginPanel
 			@Override
 			public void focusGained(FocusEvent e)
 			{
-				if (txtAccountLogin.getText().equals("Account Login"))
+				if (Arrays.equals(txtAccountLogin.getPassword(), ACCOUNT_USERNAME.toCharArray()))
 				{
 					txtAccountLogin.setText("");
+					if (config.isStreamerMode())
+					{
+						txtAccountLogin.setEchoChar('*');
+					}
 					txtAccountLogin.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 				}
 			}
@@ -127,10 +133,11 @@ class ProfilesPanel extends PluginPanel
 			@Override
 			public void focusLost(FocusEvent e)
 			{
-				if (txtAccountLogin.getText().isEmpty())
+				if (txtAccountLogin.getPassword().length == 0)
 				{
 					txtAccountLogin.setForeground(ColorScheme.MEDIUM_GRAY_COLOR);
-					txtAccountLogin.setText("Account Login");
+					txtAccountLogin.setText(ACCOUNT_USERNAME);
+					txtAccountLogin.setEchoChar((char) 0);
 				}
 			}
 		});
@@ -145,15 +152,17 @@ class ProfilesPanel extends PluginPanel
 		btnAddAccount.setMinimumSize(MINIMUM_SIZE);
 		btnAddAccount.addActionListener(e ->
 		{
-			String data = txtAccountLabel.getText() + ":" + txtAccountLogin.getText();
+			String data = txtAccountLabel.getText() + ":" + Arrays.toString(txtAccountLogin.getPassword());
+			log.info(data);
 			this.addAccount(data);
 
 			addProfile(data);
 
-			txtAccountLabel.setText("Account Label");
+			txtAccountLabel.setText(ACCOUNT_LABEL);
 			txtAccountLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 
-			txtAccountLogin.setText("Account Login");
+			txtAccountLogin.setText(ACCOUNT_USERNAME);
+			txtAccountLogin.setEchoChar((char) 0);
 			txtAccountLogin.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 		});
 
@@ -180,7 +189,7 @@ class ProfilesPanel extends PluginPanel
 		c.gridy++;
 		c.insets = new Insets(0, 0, 5, 0);
 		log.info(data);
-		ProfilePanel profile = new ProfilePanel(data, profilesConfig);
+		ProfilePanel profile = new ProfilePanel(client, data, profilesConfig);
 		add(profile, c);
 		profiles.add(profile);
 

@@ -24,14 +24,12 @@
  */
 package net.runelite.client.plugins.profiles;
 
-import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Client;
-import net.runelite.api.GameState;
-import net.runelite.client.ui.ColorScheme;
-import net.runelite.client.ui.components.FlatTextField;
-import net.runelite.client.util.ImageUtil;
-
-import javax.inject.Inject;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
@@ -39,20 +37,16 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.image.BufferedImage;
+import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.Client;
+import net.runelite.api.GameState;
+import net.runelite.client.ui.ColorScheme;
+import net.runelite.client.ui.components.FlatTextField;
+import net.runelite.client.util.ImageUtil;
 
 @Slf4j
 class ProfilePanel extends JPanel
 {
-	@Inject
-	private Client client;
-	private String loginText;
-
 	private static final ImageIcon DELETE_ICON;
 	private static final ImageIcon DELETE_HOVER_ICON;
 
@@ -63,7 +57,9 @@ class ProfilePanel extends JPanel
 		DELETE_HOVER_ICON = new ImageIcon(ImageUtil.alphaOffset(deleteImg, -100));
 	}
 
-	ProfilePanel(String data, ProfilesConfig config)
+	private final String loginText;
+
+	ProfilePanel(final Client client, String data, ProfilesConfig config)
 	{
 		String[] parts = data.split(":");
 		this.loginText = parts[1];
