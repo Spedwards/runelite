@@ -24,12 +24,14 @@
  */
 package net.runelite.client.plugins.profiles;
 
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.components.FlatTextField;
 import net.runelite.client.util.ImageUtil;
 
+import javax.inject.Inject;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
@@ -44,8 +46,11 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 
+@Slf4j
 class ProfilePanel extends JPanel
 {
+	@Inject
+	private Client client;
 	private String loginText;
 
 	private static final ImageIcon DELETE_ICON;
@@ -58,7 +63,7 @@ class ProfilePanel extends JPanel
 		DELETE_HOVER_ICON = new ImageIcon(ImageUtil.alphaOffset(deleteImg, -100));
 	}
 
-	ProfilePanel(Client client, String data, ProfilesConfig config)
+	ProfilePanel(String data, ProfilesConfig config)
 	{
 		String[] parts = data.split(":");
 		this.loginText = parts[1];
@@ -117,11 +122,12 @@ class ProfilePanel extends JPanel
 
 		labelWrapper.add(label, BorderLayout.CENTER);
 		labelWrapper.add(panelActions, BorderLayout.EAST);
-		labelWrapper.addMouseListener(new MouseAdapter()
+		label.addMouseListener(new MouseAdapter()
 		{
 			@Override
 			public void mousePressed(MouseEvent e)
 			{
+				log.info("label", e);
 				if (SwingUtilities.isLeftMouseButton(e))
 				{
 					if (client.getGameState() == GameState.LOGIN_SCREEN)
@@ -140,7 +146,7 @@ class ProfilePanel extends JPanel
 		login.setText(config.isStreamerMode() ? "Hidden email" : loginText);
 		login.setBorder(null);
 		login.setEditable(false);
-		login.setBackground(ColorScheme.DARKER_GRAY_COLOR);
+		//login.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		login.setPreferredSize(new Dimension(0, 24));
 		login.getTextField().setForeground(Color.WHITE);
 		login.getTextField().setBorder(new EmptyBorder(0, 8, 0, 0));
@@ -149,6 +155,7 @@ class ProfilePanel extends JPanel
 			@Override
 			public void mousePressed(MouseEvent e)
 			{
+				log.info("login", e);
 				if (SwingUtilities.isLeftMouseButton(e))
 				{
 					if (client.getGameState() == GameState.LOGIN_SCREEN)
@@ -168,6 +175,7 @@ class ProfilePanel extends JPanel
 			@Override
 			public void mousePressed(MouseEvent e)
 			{
+				log.info("profilePanel", e);
 				if (SwingUtilities.isLeftMouseButton(e))
 				{
 					if (client.getGameState() == GameState.LOGIN_SCREEN)
@@ -175,18 +183,6 @@ class ProfilePanel extends JPanel
 						client.setUsername(loginText);
 					}
 				}
-			}
-
-			@Override
-			public void mouseEntered(MouseEvent e)
-			{
-				setBackground(ColorScheme.DARKER_GRAY_HOVER_COLOR);
-			}
-
-			@Override
-			public void mouseExited(MouseEvent e)
-			{
-				setBackground(ColorScheme.DARKER_GRAY_HOVER_COLOR);
 			}
 		});
 	}

@@ -180,7 +180,7 @@ class ProfilesPanel extends PluginPanel
 		c.gridy++;
 		c.insets = new Insets(0, 0, 5, 0);
 		log.info(data);
-		ProfilePanel profile = new ProfilePanel(client, data, profilesConfig);
+		ProfilePanel profile = new ProfilePanel(data, profilesConfig);
 		add(profile, c);
 		profiles.add(profile);
 
@@ -191,7 +191,12 @@ class ProfilesPanel extends PluginPanel
 	void addAccounts(String data)
 	{
 		log.info("Data: " + data);
-		Arrays.stream(data.trim().split("\\n")).forEach(this::addAccount);
+		data = data.trim();
+		if (!data.contains(":"))
+		{
+			return;
+		}
+		Arrays.stream(data.split("\\n")).forEach(this::addAccount);
 	}
 
 	static void addProfile(String data)
