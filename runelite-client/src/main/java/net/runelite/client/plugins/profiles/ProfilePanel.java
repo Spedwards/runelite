@@ -41,7 +41,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.client.ui.ColorScheme;
-import net.runelite.client.ui.components.FlatTextField;
 import net.runelite.client.util.ImageUtil;
 
 @Slf4j
@@ -107,14 +106,13 @@ class ProfilePanel extends JPanel
 
 		panelActions.add(delete, BorderLayout.EAST);
 
-		FlatTextField label = new FlatTextField();
+		JLabel label = new JLabel();
 		label.setText(parts[0]);
 		label.setBorder(null);
-		label.setEditable(false);
 		label.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		label.setPreferredSize(new Dimension(0, 24));
-		label.getTextField().setForeground(Color.WHITE);
-		label.getTextField().setBorder(new EmptyBorder(0, 8, 0, 0));
+		label.setForeground(Color.WHITE);
+		label.setBorder(new EmptyBorder(0, 8, 0, 0));
 
 		labelWrapper.add(label, BorderLayout.CENTER);
 		labelWrapper.add(panelActions, BorderLayout.EAST);
@@ -137,36 +135,7 @@ class ProfilePanel extends JPanel
 		JPanel bottomContainer = new JPanel(new BorderLayout());
 		bottomContainer.setBorder(new EmptyBorder(8, 0, 8, 0));
 		bottomContainer.setBackground(ColorScheme.DARKER_GRAY_COLOR);
-
-		FlatTextField login = new FlatTextField();
-		login.setText(config.isStreamerMode() ? "Hidden email" : loginText);
-		login.setBorder(null);
-		login.setEditable(false);
-		//login.setBackground(ColorScheme.DARKER_GRAY_COLOR);
-		login.setPreferredSize(new Dimension(0, 24));
-		login.getTextField().setForeground(Color.WHITE);
-		login.getTextField().setBorder(new EmptyBorder(0, 8, 0, 0));
-		login.addMouseListener(new MouseAdapter()
-		{
-			@Override
-			public void mousePressed(MouseEvent e)
-			{
-				log.info("login", e);
-				if (SwingUtilities.isLeftMouseButton(e))
-				{
-					if (client.getGameState() == GameState.LOGIN_SCREEN)
-					{
-						client.setUsername(loginText);
-					}
-				}
-			}
-		});
-
-		bottomContainer.add(login, BorderLayout.CENTER);
-
-		add(labelWrapper, BorderLayout.NORTH);
-		add(bottomContainer, BorderLayout.CENTER);
-		addMouseListener(new MouseAdapter()
+		bottomContainer.addMouseListener(new MouseAdapter()
 		{
 			@Override
 			public void mousePressed(MouseEvent e)
@@ -181,5 +150,18 @@ class ProfilePanel extends JPanel
 				}
 			}
 		});
+
+		JLabel login = new JLabel();
+		login.setText(config.isStreamerMode() ? "Hidden email" : loginText);
+		login.setBorder(null);
+		//login.setBackground(ColorScheme.DARKER_GRAY_COLOR);
+		login.setPreferredSize(new Dimension(0, 24));
+		login.setForeground(Color.WHITE);
+		login.setBorder(new EmptyBorder(0, 8, 0, 0));
+
+		bottomContainer.add(login, BorderLayout.CENTER);
+
+		add(labelWrapper, BorderLayout.NORTH);
+		add(bottomContainer, BorderLayout.CENTER);
 	}
 }
