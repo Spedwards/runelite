@@ -119,7 +119,7 @@ class ProfilesPanel extends PluginPanel
 			@Override
 			public void focusGained(FocusEvent e)
 			{
-				if (Arrays.equals(txtAccountLogin.getPassword(), ACCOUNT_USERNAME.toCharArray()))
+				if (ACCOUNT_USERNAME.equals(String.valueOf(txtAccountLogin.getPassword())))
 				{
 					txtAccountLogin.setText("");
 					if (config.isStreamerMode())
@@ -152,7 +152,7 @@ class ProfilesPanel extends PluginPanel
 		btnAddAccount.setMinimumSize(MINIMUM_SIZE);
 		btnAddAccount.addActionListener(e ->
 		{
-			String data = txtAccountLabel.getText() + ":" + Arrays.toString(txtAccountLogin.getPassword());
+			String data = txtAccountLabel.getText() + ":" + String.valueOf(txtAccountLogin.getPassword());
 			log.info(data);
 			this.addAccount(data);
 
