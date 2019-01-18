@@ -53,6 +53,8 @@ public class ScreenMarkerPluginPanel extends PluginPanel
 {
 	private static final ImageIcon ADD_ICON;
 	private static final ImageIcon ADD_HOVER_ICON;
+	private static final ImageIcon GROUP_ICON;
+	private static final ImageIcon GROUP_HOVER_ICON;
 
 	private static final Color DEFAULT_BORDER_COLOR = Color.GREEN;
 	private static final Color DEFAULT_FILL_COLOR = new Color(0, 255, 0, 0);
@@ -60,6 +62,7 @@ public class ScreenMarkerPluginPanel extends PluginPanel
 	private static final int DEFAULT_BORDER_THICKNESS = 3;
 
 	private final JLabel addMarker = new JLabel(ADD_ICON);
+	private final JLabel addGroup = new JLabel(GROUP_ICON);
 	private final JLabel title = new JLabel();
 	private final PluginErrorPanel noMarkersPanel = new PluginErrorPanel();
 
@@ -83,6 +86,11 @@ public class ScreenMarkerPluginPanel extends PluginPanel
 		final BufferedImage addIcon = ImageUtil.getResourceStreamFromClass(ScreenMarkerPlugin.class, "add_icon.png");
 		ADD_ICON = new ImageIcon(addIcon);
 		ADD_HOVER_ICON = new ImageIcon(ImageUtil.alphaOffset(addIcon, 0.53f));
+
+		// TODO: Get icon - Currently using the add icon
+		final BufferedImage groupIcon = ImageUtil.getResourceStreamFromClass(ScreenMarkerPlugin.class, "group_icon.png");
+		GROUP_ICON = new ImageIcon(groupIcon);
+		GROUP_HOVER_ICON = new ImageIcon(ImageUtil.alphaOffset(groupIcon, 0.53f));
 	}
 
 	public void init()
@@ -93,11 +101,15 @@ public class ScreenMarkerPluginPanel extends PluginPanel
 		JPanel northPanel = new JPanel(new BorderLayout());
 		northPanel.setBorder(new EmptyBorder(1, 0, 10, 0));
 
+		JPanel addActions = new JPanel(new BorderLayout(2, 0));
+		addActions.add(addMarker, BorderLayout.WEST);
+		addActions.add(addGroup, BorderLayout.EAST);
+
 		title.setText("Screen Markers");
 		title.setForeground(Color.WHITE);
 
 		northPanel.add(title, BorderLayout.WEST);
-		northPanel.add(addMarker, BorderLayout.EAST);
+		northPanel.add(addActions, BorderLayout.EAST);
 
 		JPanel centerPanel = new JPanel(new BorderLayout());
 		centerPanel.setBackground(ColorScheme.DARK_GRAY_COLOR);
@@ -157,6 +169,39 @@ public class ScreenMarkerPluginPanel extends PluginPanel
 			public void mouseExited(MouseEvent mouseEvent)
 			{
 				addMarker.setIcon(ADD_ICON);
+			}
+		});
+
+		addGroup.setToolTipText("Add new screen marker group");
+		addGroup.addMouseListener(new MouseAdapter()
+		{
+			@Override
+			public void mousePressed(MouseEvent e)
+			{
+				GroupPanel groupPanel = new GroupPanel(ScreenMarkerPluginPanel.this);
+				markerView.add(groupPanel, constraints);
+				constraints.gridy++;
+
+				markerView.add(Box.createRigidArea(new Dimension(0, 10)), constraints);
+				constraints.gridy++;
+
+				// TODO: One of these four correctly updates the panel. Find out which one.
+				markerView.revalidate();
+				markerView.repaint();
+				revalidate();
+				repaint();
+			}
+
+			@Override
+			public void mouseEntered(MouseEvent e)
+			{
+				addGroup.setIcon(GROUP_HOVER_ICON);
+			}
+
+			@Override
+			public void mouseExited(MouseEvent e)
+			{
+				addGroup.setIcon(GROUP_ICON);
 			}
 		});
 
