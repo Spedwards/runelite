@@ -46,15 +46,7 @@ public class ChatClient
 			.addQueryParameter("kc", Integer.toString(kc))
 			.build();
 
-		Request request = new Request.Builder()
-			.post(RequestBody.create(null, new byte[0]))
-			.url(url)
-			.build();
-
-		try (Response response = RuneLiteAPI.CLIENT.newCall(request).execute())
-		{
-			return response.isSuccessful();
-		}
+		return submit(url);
 	}
 
 	public int getKc(String username, String boss) throws IOException
@@ -89,15 +81,7 @@ public class ChatClient
 			.addQueryParameter("qp", Integer.toString(qp))
 			.build();
 
-		Request request = new Request.Builder()
-			.post(RequestBody.create(null, new byte[0]))
-			.url(url)
-			.build();
-
-		try (Response response = RuneLiteAPI.CLIENT.newCall(request).execute())
-		{
-			return response.isSuccessful();
-		}
+		return submit(url);
 	}
 
 	public int getQp(String username) throws IOException
@@ -134,15 +118,7 @@ public class ChatClient
 			.addQueryParameter("location", location)
 			.build();
 
-		Request request = new Request.Builder()
-			.post(RequestBody.create(null, new byte[0]))
-			.url(url)
-			.build();
-
-		try (Response response = RuneLiteAPI.CLIENT.newCall(request).execute())
-		{
-			return response.isSuccessful();
-		}
+		return submit(url);
 	}
 
 	public Task getTask(String username) throws IOException
@@ -170,6 +146,19 @@ public class ChatClient
 		catch (JsonParseException ex)
 		{
 			throw new IOException(ex);
+		}
+	}
+
+	public boolean submit(HttpUrl url) throws IOException
+	{
+		Request request = new Request.Builder()
+			.post(RequestBody.create(null, new byte[0]))
+			.url(url)
+			.build();
+
+		try (Response response = RuneLiteAPI.CLIENT.newCall(request).execute())
+		{
+			return response.isSuccessful();
 		}
 	}
 }
