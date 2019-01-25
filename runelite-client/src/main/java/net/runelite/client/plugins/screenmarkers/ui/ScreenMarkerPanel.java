@@ -50,7 +50,8 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 
 import lombok.Getter;
-import net.runelite.client.plugins.screenmarkers.ScreenMarkerOverlay;
+import net.runelite.client.plugins.screenmarkers.Marker;
+import net.runelite.client.plugins.screenmarkers.MarkerOverlay;
 import net.runelite.client.plugins.screenmarkers.ScreenMarkerPlugin;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.FontManager;
@@ -92,7 +93,7 @@ class ScreenMarkerPanel extends JPanel
 	private final JLabel visibilityLabel = new JLabel();
 
 	private final ScreenMarkerPlugin plugin;
-	private final ScreenMarkerOverlay marker;
+	private final Marker marker;
 
 	private final JLabel borderColorIndicator = new JLabel();
 	private final JLabel fillColorIndicator = new JLabel();
@@ -148,11 +149,11 @@ class ScreenMarkerPanel extends JPanel
 		DELETE_HOVER_ICON = new ImageIcon(ImageUtil.alphaOffset(deleteImg, -100));
 	}
 
-	ScreenMarkerPanel(ScreenMarkerPlugin plugin, ScreenMarkerOverlay marker)
+	ScreenMarkerPanel(ScreenMarkerPlugin plugin, Marker marker)
 	{
 		this.plugin = plugin;
 		this.marker = marker;
-		this.visible = marker.getMarker().isVisible();
+		this.visible = marker.isVisible();
 
 		setLayout(new BorderLayout());
 		setBackground(ColorScheme.DARKER_GRAY_COLOR);
@@ -173,8 +174,8 @@ class ScreenMarkerPanel extends JPanel
 			@Override
 			public void mousePressed(MouseEvent mouseEvent)
 			{
-				marker.getMarker().setName(nameInput.getText());
-				plugin.updateConfig();
+				marker.setName(nameInput.getText());
+				plugin.serializeMarkers();
 
 				nameInput.setEditable(false);
 				updateNameActions(false);
@@ -203,7 +204,7 @@ class ScreenMarkerPanel extends JPanel
 			public void mousePressed(MouseEvent mouseEvent)
 			{
 				nameInput.setEditable(false);
-				nameInput.setText(marker.getMarker().getName());
+				nameInput.setText(marker.getName());
 				updateNameActions(false);
 				requestFocusInWindow();
 			}
@@ -249,7 +250,7 @@ class ScreenMarkerPanel extends JPanel
 		nameActions.add(cancel, BorderLayout.WEST);
 		nameActions.add(rename, BorderLayout.CENTER);
 
-		nameInput.setText(marker.getMarker().getName());
+		nameInput.setText(marker.getName());
 		nameInput.setBorder(null);
 		nameInput.setEditable(false);
 		nameInput.setBackground(ColorScheme.DARKER_GRAY_COLOR);
@@ -279,13 +280,13 @@ class ScreenMarkerPanel extends JPanel
 			@Override
 			public void mouseEntered(MouseEvent mouseEvent)
 			{
-				borderColorIndicator.setIcon(marker.getMarker().getBorderThickness() == 0 ? NO_BORDER_COLOR_HOVER_ICON : BORDER_COLOR_HOVER_ICON);
+				borderColorIndicator.setIcon(marker.getBorderThickness() == 0 ? NO_BORDER_COLOR_HOVER_ICON : BORDER_COLOR_HOVER_ICON);
 			}
 
 			@Override
 			public void mouseExited(MouseEvent mouseEvent)
 			{
-				borderColorIndicator.setIcon(marker.getMarker().getBorderThickness() == 0 ? NO_BORDER_COLOR_ICON : BORDER_COLOR_ICON);
+				borderColorIndicator.setIcon(marker.getBorderThickness() == 0 ? NO_BORDER_COLOR_ICON : BORDER_COLOR_ICON);
 			}
 		});
 
@@ -301,17 +302,17 @@ class ScreenMarkerPanel extends JPanel
 			@Override
 			public void mouseEntered(MouseEvent mouseEvent)
 			{
-				fillColorIndicator.setIcon(marker.getMarker().getFill().getAlpha() == 0 ? NO_FILL_COLOR_HOVER_ICON : FILL_COLOR_HOVER_ICON);
+				fillColorIndicator.setIcon(marker.getFill().getAlpha() == 0 ? NO_FILL_COLOR_HOVER_ICON : FILL_COLOR_HOVER_ICON);
 			}
 
 			@Override
 			public void mouseExited(MouseEvent mouseEvent)
 			{
-				fillColorIndicator.setIcon(marker.getMarker().getFill().getAlpha() == 0 ? NO_FILL_COLOR_ICON : FILL_COLOR_ICON);
+				fillColorIndicator.setIcon(marker.getFill().getAlpha() == 0 ? NO_FILL_COLOR_ICON : FILL_COLOR_ICON);
 			}
 		});
 
-		thicknessSpinner.setValue(marker.getMarker().getBorderThickness());
+		thicknessSpinner.setValue(marker.getBorderThickness());
 		thicknessSpinner.setPreferredSize(new Dimension(50, 20));
 		thicknessSpinner.addChangeListener(ce -> updateThickness(true));
 
@@ -321,31 +322,31 @@ class ScreenMarkerPanel extends JPanel
 			@Override
 			public void mousePressed(MouseEvent mouseEvent)
 			{
-				final Color fill = marker.getMarker().getFill();
+				final Color fill = marker.getFill();
 
 				if (fill.getAlpha() == 0)
 				{
-					marker.getMarker().setFill(new Color(fill.getRed(), fill.getGreen(), fill.getBlue(), DEFAULT_FILL_OPACITY));
+					marker.setFill(new Color(fill.getRed(), fill.getGreen(), fill.getBlue(), DEFAULT_FILL_OPACITY));
 				}
 				else
 				{
-					marker.getMarker().setFill(new Color(fill.getRed(), fill.getGreen(), fill.getBlue(), 0));
+					marker.setFill(new Color(fill.getRed(), fill.getGreen(), fill.getBlue(), 0));
 				}
 
 				updateFill();
-				plugin.updateConfig();
+				plugin.serializeMarkers();
 			}
 
 			@Override
 			public void mouseEntered(MouseEvent mouseEvent)
 			{
-				opacityIndicator.setIcon(marker.getMarker().getFill().getAlpha() == 0 ? NO_OPACITY_HOVER_ICON : FULL_OPACITY_HOVER_ICON);
+				opacityIndicator.setIcon(marker.getFill().getAlpha() == 0 ? NO_OPACITY_HOVER_ICON : FULL_OPACITY_HOVER_ICON);
 			}
 
 			@Override
 			public void mouseExited(MouseEvent mouseEvent)
 			{
-				opacityIndicator.setIcon(marker.getMarker().getFill().getAlpha() == 0 ? NO_OPACITY_ICON : FULL_OPACITY_ICON);
+				opacityIndicator.setIcon(marker.getFill().getAlpha() == 0 ? NO_OPACITY_ICON : FULL_OPACITY_ICON);
 			}
 		});
 
@@ -364,8 +365,8 @@ class ScreenMarkerPanel extends JPanel
 			public void mousePressed(MouseEvent mouseEvent)
 			{
 				visible = !visible;
-				marker.getMarker().setVisible(visible);
-				plugin.updateConfig();
+				marker.setVisible(visible);
+				plugin.serializeMarkers();
 				updateVisibility();
 			}
 
@@ -444,11 +445,11 @@ class ScreenMarkerPanel extends JPanel
 	/* Updates the thickness without saving on config */
 	private void updateThickness(boolean save)
 	{
-		marker.getMarker().setBorderThickness((Integer) thicknessSpinner.getValue());
+		marker.setBorderThickness((Integer) thicknessSpinner.getValue());
 		updateBorder();
 		if (save)
 		{
-			plugin.updateConfig();
+			plugin.serializeMarkers();
 		}
 	}
 
@@ -459,7 +460,7 @@ class ScreenMarkerPanel extends JPanel
 
 	private void updateFill()
 	{
-		final boolean isFullyTransparent = marker.getMarker().getFill().getAlpha() == 0;
+		final boolean isFullyTransparent = marker.getFill().getAlpha() == 0;
 
 		if (isFullyTransparent)
 		{
@@ -467,7 +468,7 @@ class ScreenMarkerPanel extends JPanel
 		}
 		else
 		{
-			Color color = marker.getMarker().getFill();
+			Color color = marker.getFill();
 			Color fullColor = new Color(color.getRed(), color.getGreen(), color.getBlue());
 			fillColorIndicator.setBorder(new MatteBorder(0, 0, 3, 0, fullColor));
 		}
@@ -478,28 +479,28 @@ class ScreenMarkerPanel extends JPanel
 
 	private void updateBorder()
 	{
-		if (marker.getMarker().getBorderThickness() == 0)
+		if (marker.getBorderThickness() == 0)
 		{
 			borderColorIndicator.setBorder(null);
 		}
 		else
 		{
-			Color color = marker.getMarker().getColor();
+			Color color = marker.getColor();
 			borderColorIndicator.setBorder(new MatteBorder(0, 0, 3, 0, color));
 		}
 
-		borderColorIndicator.setIcon(marker.getMarker().getBorderThickness() == 0 ? NO_BORDER_COLOR_ICON : BORDER_COLOR_ICON);
+		borderColorIndicator.setIcon(marker.getBorderThickness() == 0 ? NO_BORDER_COLOR_ICON : BORDER_COLOR_ICON);
 	}
 
 	private void openFillColorPicker()
 	{
 		final JFrame parent = new JFrame();
-		JColorChooser jColorChooser = new JColorChooser(marker.getMarker().getFill());
+		JColorChooser jColorChooser = new JColorChooser(marker.getFill());
 
 		jColorChooser.getSelectionModel().addChangeListener(e1 ->
 		{
 			Color chosen = jColorChooser.getColor();
-			marker.getMarker().setFill(new Color(chosen.getRed(), chosen.getGreen(), chosen.getBlue(), DEFAULT_FILL_OPACITY));
+			marker.setFill(new Color(chosen.getRed(), chosen.getGreen(), chosen.getBlue(), DEFAULT_FILL_OPACITY));
 			updateFill();
 		});
 
@@ -508,7 +509,7 @@ class ScreenMarkerPanel extends JPanel
 			@Override
 			public void windowClosing(WindowEvent e)
 			{
-				plugin.updateConfig();
+				plugin.serializeMarkers();
 			}
 		});
 
@@ -521,11 +522,11 @@ class ScreenMarkerPanel extends JPanel
 	private void openBorderColorPicker()
 	{
 		final JFrame parent = new JFrame();
-		JColorChooser jColorChooser = new JColorChooser(marker.getMarker().getColor());
+		JColorChooser jColorChooser = new JColorChooser(marker.getColor());
 
 		jColorChooser.getSelectionModel().addChangeListener(e1 ->
 		{
-			marker.getMarker().setColor(jColorChooser.getColor());
+			marker.setColor(jColorChooser.getColor());
 			updateBorder();
 		});
 
@@ -534,7 +535,7 @@ class ScreenMarkerPanel extends JPanel
 			@Override
 			public void windowClosing(WindowEvent e)
 			{
-				plugin.updateConfig();
+				plugin.serializeMarkers();
 			}
 		});
 

@@ -41,7 +41,10 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 import lombok.Getter;
-import net.runelite.client.plugins.screenmarkers.ScreenMarkerOverlay;
+import net.runelite.client.plugins.screenmarkers.Marker;
+import net.runelite.client.plugins.screenmarkers.MarkerGroup;
+import net.runelite.client.plugins.screenmarkers.MarkerOverlay;
+import net.runelite.client.plugins.screenmarkers.MarkerWrapper;
 import net.runelite.client.plugins.screenmarkers.ScreenMarkerPlugin;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.PluginPanel;
@@ -123,9 +126,16 @@ public class ScreenMarkerPluginPanel extends PluginPanel
 		constraints.gridx = 0;
 		constraints.gridy = 0;
 
-		for (final ScreenMarkerOverlay marker : plugin.getScreenMarkers())
+		for (final MarkerWrapper wrapper : plugin.getMarkers())
 		{
-			markerView.add(new ScreenMarkerPanel(plugin, marker), constraints);
+			if (wrapper instanceof Marker)
+			{
+				markerView.add(new ScreenMarkerPanel(plugin, (Marker) wrapper), constraints);
+			}
+			else
+			{
+				markerView.add(new GroupPanel(plugin, (MarkerGroup) wrapper), constraints);
+			}
 			constraints.gridy++;
 
 			markerView.add(Box.createRigidArea(new Dimension(0, 10)), constraints);
@@ -135,7 +145,7 @@ public class ScreenMarkerPluginPanel extends PluginPanel
 		noMarkersPanel.setContent("Screen Markers", "Highlight a region on your screen.");
 		noMarkersPanel.setVisible(false);
 
-		if (plugin.getScreenMarkers().isEmpty())
+		if (plugin.getMarkers().isEmpty())
 		{
 			noMarkersPanel.setVisible(true);
 			title.setVisible(false);
@@ -178,18 +188,14 @@ public class ScreenMarkerPluginPanel extends PluginPanel
 			@Override
 			public void mousePressed(MouseEvent e)
 			{
-				GroupPanel groupPanel = new GroupPanel(ScreenMarkerPluginPanel.this);
+				GroupPanel groupPanel = new GroupPanel(plugin, plugin.createGroup());
 				markerView.add(groupPanel, constraints);
 				constraints.gridy++;
 
 				markerView.add(Box.createRigidArea(new Dimension(0, 10)), constraints);
 				constraints.gridy++;
 
-				// TODO: One of these four correctly updates the panel. Find out which one.
-				markerView.revalidate();
-				markerView.repaint();
-				revalidate();
-				repaint();
+				rebuild();
 			}
 
 			@Override
@@ -229,7 +235,7 @@ public class ScreenMarkerPluginPanel extends PluginPanel
 		}
 		else
 		{
-			boolean empty = plugin.getScreenMarkers().isEmpty();
+			boolean empty = plugin.getMarkers().isEmpty();
 			noMarkersPanel.setVisible(empty);
 			title.setVisible(!empty);
 		}

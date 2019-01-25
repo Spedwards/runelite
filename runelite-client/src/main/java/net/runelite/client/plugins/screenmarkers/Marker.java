@@ -33,12 +33,11 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ScreenMarker
+public class Marker extends MarkerWrapper
 {
 	private long id;
-	private String name;
 	private int borderThickness;
 	private Color color;
 	private Color fill;
-	private boolean visible;
+	private MarkerOverlay overlay;
 }

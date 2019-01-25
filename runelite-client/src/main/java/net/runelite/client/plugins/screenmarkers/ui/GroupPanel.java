@@ -1,7 +1,8 @@
 package net.runelite.client.plugins.screenmarkers.ui;
 
 import lombok.Getter;
-import net.runelite.client.plugins.screenmarkers.ScreenMarkerOverlay;
+import net.runelite.client.plugins.screenmarkers.MarkerGroup;
+import net.runelite.client.plugins.screenmarkers.MarkerOverlay;
 import net.runelite.client.plugins.screenmarkers.ScreenMarkerPlugin;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.components.FlatTextField;
@@ -44,7 +45,7 @@ public class GroupPanel extends JPanel
 	private final FlatTextField title = new FlatTextField();
 
 	@Getter
-	private final List<ScreenMarkerOverlay> screenMarkers = new ArrayList<>();
+	private final List<MarkerOverlay> screenMarkers = new ArrayList<>();
 
 	@Getter
 	private ScreenMarkerCreationPanel creationPanel;
@@ -56,7 +57,7 @@ public class GroupPanel extends JPanel
 	private final JLabel renameGroup = new JLabel(RENAME_ICON);
 	private final JLabel visibleGroup = new JLabel(VISIBLE_ICON);
 	private final JLabel deleteGroup = new JLabel(DELETE_ICON);
-	private final ScreenMarkerPluginPanel panel;
+	private final MarkerGroup group;
 	private final PluginErrorPanel noMarkersPanel = new PluginErrorPanel();
 	private final JPanel markerView;
 	private final GridBagConstraints c;
@@ -87,10 +88,10 @@ public class GroupPanel extends JPanel
 		DELETE_HOVER_ICON = new ImageIcon(ImageUtil.alphaOffset(deleteImg, -100));
 	}
 
-	GroupPanel(final ScreenMarkerPluginPanel panel)
+	GroupPanel(final ScreenMarkerPlugin plugin, MarkerGroup group)
 	{
 		super();
-		this.panel = panel;
+		this.group = group;
 
 		setLayout(new BorderLayout());
 		setBorder(new EmptyBorder(10, 10, 10, 10));
@@ -110,7 +111,7 @@ public class GroupPanel extends JPanel
 		actions.add(topActions, BorderLayout.NORTH);
 		actions.add(bottomActions, BorderLayout.SOUTH);
 
-		title.setText("Group #"); // TODO: Automatically increment count
+		title.setText(group.getName());
 		title.setBorder(null);
 		title.setEditable(false);
 		title.getTextField().setForeground(Color.WHITE);
@@ -264,7 +265,7 @@ public class GroupPanel extends JPanel
 
 	void build()
 	{
-		screenMarkers.forEach(marker ->
+		group.getMarkers().forEach(marker ->
 		{
 			markerView.add(new ScreenMarkerPanel(plugin, marker), c);
 			c.gridy++;

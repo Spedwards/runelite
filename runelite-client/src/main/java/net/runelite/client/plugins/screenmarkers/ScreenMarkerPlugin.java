@@ -26,24 +26,22 @@
  */
 package net.runelite.client.plugins.screenmarkers;
 
-import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.google.inject.Provides;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
+import java.lang.reflect.Type;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.inject.Inject;
 import lombok.AccessLevel;
 import lombok.Getter;
-import net.runelite.api.events.ConfigChanged;
 import net.runelite.client.config.ConfigManager;
-import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.input.MouseManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
@@ -65,16 +63,18 @@ public class ScreenMarkerPlugin extends Plugin
 	private static final String CONFIG_KEY = "markers";
 	private static final String ICON_FILE = "panel_icon.png";
 	private static final String DEFAULT_MARKER_NAME = "Marker";
+	private static final String DEFAULT_GROUP_NAME = "Group";
 	private static final Dimension DEFAULT_SIZE = new Dimension(2, 2);
-
-	@Getter
-	private final List<ScreenMarkerOverlay> screenMarkers = new ArrayList<>();
+	private static final Gson GSON = new Gson();
 
 	@Inject
 	private ConfigManager configManager;
 
 	@Inject
 	private MouseManager mouseManager;
+
+	@Inject
+	private ScreenMarkerConfig config;
 
 	@Inject
 	private ClientToolbar clientToolbar;
@@ -85,23 +85,32 @@ public class ScreenMarkerPlugin extends Plugin
 	@Inject
 	private ScreenMarkerCreationOverlay overlay;
 
-	private ScreenMarkerMouseListener mouseListener;
-	private ScreenMarkerPluginPanel pluginPanel;
-	private NavigationButton navigationButton;
+	@Getter
+	private final List<MarkerWrapper> markers = new ArrayList<>();
 
 	@Getter(AccessLevel.PACKAGE)
-	private ScreenMarker currentMarker;
+	private Marker currentMarker;
 
 	@Getter
 	private boolean creatingScreenMarker = false;
+
 	private Point startLocation = null;
+	private ScreenMarkerPluginPanel pluginPanel;
+	private NavigationButton navigationButton;
+	private ScreenMarkerMouseListener mouseListener;
+
+	@Provides
+	ScreenMarkerConfig getConfig(ConfigManager configManager)
+	{
+		return configManager.getConfig(ScreenMarkerConfig.class);
+	}
 
 	@Override
-	protected void startUp() throws Exception
+	protected void startUp()
 	{
+		markers.addAll(deserializeMarkers());
 		overlayManager.add(overlay);
-		loadConfig(configManager.getConfiguration(CONFIG_GROUP, CONFIG_KEY)).forEach(screenMarkers::add);
-		screenMarkers.forEach(overlayManager::add);
+		getScreenMarkers().forEach(overlayManager::add);
 
 		pluginPanel = injector.getInstance(ScreenMarkerPluginPanel.class);
 		pluginPanel.rebuild();
@@ -121,30 +130,19 @@ public class ScreenMarkerPlugin extends Plugin
 	}
 
 	@Override
-	protected void shutDown() throws Exception
+	protected void shutDown()
 	{
 		overlayManager.remove(overlay);
-		overlayManager.removeIf(ScreenMarkerOverlay.class::isInstance);
-		screenMarkers.clear();
+		overlayManager.removeIf(MarkerOverlay.class::isInstance);
 		clientToolbar.removeNavigation(navigationButton);
 		setMouseListenerEnabled(false);
-		creatingScreenMarker = false;
 
 		pluginPanel = null;
-		currentMarker = null;
 		mouseListener = null;
 		navigationButton = null;
-	}
 
-	@Subscribe
-	public void onConfigChanged(ConfigChanged event)
-	{
-		if (screenMarkers.isEmpty() && event.getGroup().equals(CONFIG_GROUP) && event.getKey().equals(CONFIG_KEY))
-		{
-			loadConfig(event.getNewValue()).forEach(screenMarkers::add);
-			overlayManager.removeIf(ScreenMarkerOverlay.class::isInstance);
-			screenMarkers.forEach(overlayManager::add);
-		}
+		serializeMarkers();
+		markers.clear();
 	}
 
 	public void setMouseListenerEnabled(boolean enabled)
@@ -159,18 +157,34 @@ public class ScreenMarkerPlugin extends Plugin
 		}
 	}
 
+	private Stream<MarkerOverlay> getScreenMarkers()
+	{
+		return markers.stream()
+			.flatMap(wrapper -> {
+				if (wrapper instanceof Marker)
+				{
+					return Stream.of(((Marker) wrapper).getOverlay());
+				}
+				else
+				{
+					MarkerGroup group = (MarkerGroup) wrapper;
+					return group.getMarkers()
+						.stream()
+						.map(marker -> marker.getOverlay());
+				}
+			});
+	}
+
 	public void startCreation(Point location)
 	{
-		currentMarker = new ScreenMarker(
-			Instant.now().toEpochMilli(),
-			DEFAULT_MARKER_NAME + " " + (screenMarkers.size() + 1),
-			pluginPanel.getSelectedBorderThickness(),
-			pluginPanel.getSelectedColor(),
-			pluginPanel.getSelectedFillColor(),
-			true
-		);
+		currentMarker = new Marker();
+		currentMarker.setId(Instant.now().toEpochMilli());
+		currentMarker.setName(DEFAULT_MARKER_NAME + " " + (markers.size() + 1));
+		currentMarker.setBorderThickness(pluginPanel.getSelectedBorderThickness());
+		currentMarker.setColor(pluginPanel.getSelectedColor());
+		currentMarker.setFill(pluginPanel.getSelectedFillColor());
+		currentMarker.setVisible(true);
 
-		// Set overlay creator bounds to current position and default size
 		startLocation = location;
 		overlay.setPreferredLocation(location);
 		overlay.setPreferredSize(DEFAULT_SIZE);
@@ -181,38 +195,46 @@ public class ScreenMarkerPlugin extends Plugin
 	{
 		if (!aborted)
 		{
-			final ScreenMarkerOverlay screenMarkerOverlay = new ScreenMarkerOverlay(currentMarker);
-			screenMarkerOverlay.setPreferredLocation(overlay.getBounds().getLocation());
-			screenMarkerOverlay.setPreferredSize(overlay.getBounds().getSize());
+			final MarkerOverlay markerOverlay = new MarkerOverlay();
+			markerOverlay.setPreferredLocation(overlay.getBounds().getLocation());
+			markerOverlay.setPreferredSize(overlay.getBounds().getSize());
+			markerOverlay.setId(currentMarker.getId());
+			markerOverlay.setBorderThickness(currentMarker.getBorderThickness());
+			markerOverlay.setColor(currentMarker.getColor());
+			markerOverlay.setFill(currentMarker.getFill());
 
-			screenMarkers.add(screenMarkerOverlay);
-			overlayManager.saveOverlay(screenMarkerOverlay);
-			overlayManager.add(screenMarkerOverlay);
+			currentMarker.setOverlay(markerOverlay);
+			overlayManager.saveOverlay(markerOverlay);
+			overlayManager.add(markerOverlay);
 			pluginPanel.rebuild();
-			updateConfig();
+			serializeMarkers();
 		}
-
-		creatingScreenMarker = false;
-		startLocation = null;
-		currentMarker = null;
-		setMouseListenerEnabled(false);
-
-		pluginPanel.setCreation(false);
 	}
 
-	/* The marker area has been drawn, inform the user and unlock the confirm button */
 	public void completeSelection()
 	{
 		pluginPanel.getCreationPanel().unlockConfirm();
 	}
 
-	public void deleteMarker(final ScreenMarkerOverlay marker)
+	public void deleteMarker(final Marker marker)
 	{
-		screenMarkers.remove(marker);
-		overlayManager.remove(marker);
-		overlayManager.resetOverlay(marker);
+		deleteMarker(marker, null);
+	}
+
+	public void deleteMarker(final Marker marker, final MarkerGroup group)
+	{
+		if (group == null)
+		{
+			markers.remove(marker);
+		}
+		else
+		{
+			group.getMarkers().remove(marker);
+		}
+		overlayManager.remove(marker.getOverlay());
+		overlayManager.resetOverlay(marker.getOverlay());
 		pluginPanel.rebuild();
-		updateConfig();
+		serializeMarkers();
 	}
 
 	void resizeMarker(Point point)
@@ -223,32 +245,32 @@ public class ScreenMarkerPlugin extends Plugin
 		overlay.setPreferredSize(bounds.getSize());
 	}
 
-	public void updateConfig()
+	public MarkerGroup createGroup()
 	{
-		if (screenMarkers.isEmpty())
-		{
-			configManager.unsetConfiguration(CONFIG_GROUP, CONFIG_KEY);
-			return;
-		}
+		int groups = markers.stream()
+			.filter(wrapper -> wrapper instanceof MarkerGroup)
+			.toArray().length;
+		final MarkerGroup group = new MarkerGroup();
+		group.setId(Instant.now().toEpochMilli());
+		group.setName(DEFAULT_GROUP_NAME + " " + (groups + 1));
+		group.setVisible(true);
+		group.setSequential(false);
 
-		final Gson gson = new Gson();
-		final String json = gson
-			.toJson(screenMarkers.stream().map(ScreenMarkerOverlay::getMarker).collect(Collectors.toList()));
-		configManager.setConfiguration(CONFIG_GROUP, CONFIG_KEY, json);
+		markers.add(group);
+
+		return group;
 	}
 
-	private Stream<ScreenMarkerOverlay> loadConfig(String json)
+	public void serializeMarkers()
 	{
-		if (Strings.isNullOrEmpty(json))
-		{
-			return Stream.empty();
-		}
+		config.markersData(GSON.toJson(markers));
+	}
 
-		final Gson gson = new Gson();
-		final List<ScreenMarker> screenMarkerData = gson.fromJson(json, new TypeToken<ArrayList<ScreenMarker>>()
+	private List<MarkerWrapper> deserializeMarkers()
+	{
+		Type listType = new TypeToken<List<MarkerWrapper>>()
 		{
-		}.getType());
-
-		return screenMarkerData.stream().map(ScreenMarkerOverlay::new);
+		}.getType();
+		return GSON.fromJson(config.markersData(), listType);
 	}
 }

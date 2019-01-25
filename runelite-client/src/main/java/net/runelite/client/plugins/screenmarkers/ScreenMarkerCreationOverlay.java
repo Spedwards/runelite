@@ -50,7 +50,7 @@ public class ScreenMarkerCreationOverlay extends Overlay
 	@Override
 	public Dimension render(Graphics2D graphics)
 	{
-		ScreenMarker marker = plugin.getCurrentMarker();
+		Marker marker = plugin.getCurrentMarker();
 
 		if (marker == null)
 		{
