@@ -26,7 +26,6 @@
  */
 package net.runelite.client.plugins.suppliestracker;
 
-import net.runelite.api.Client;
 import static net.runelite.api.ItemID.*;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.game.ItemManager;
@@ -36,7 +35,6 @@ import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.util.ColorUtil;
 import net.runelite.client.util.StackFormatter;
 import net.runelite.http.api.item.ItemPrice;
-import javax.inject.Inject;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JFormattedTextField;
@@ -56,8 +54,6 @@ import java.awt.image.BufferedImage;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ScheduledExecutorService;
-
 
 class SuppliesTrackerPanel extends PluginPanel
 {
@@ -67,29 +63,22 @@ class SuppliesTrackerPanel extends PluginPanel
 	// Handle loot logs
 	private final JPanel logsContainer = new JPanel();
 
-	private final ScheduledExecutorService executor;
-
-	// Handle overall session data
-	private final JPanel overallPanel = new JPanel();
 	private final JLabel overallSuppliesUsedLabel = new JLabel();
 	private final JLabel overallCostLabel = new JLabel();
 	private final JLabel overallIcon = new JLabel();
 	private final ItemManager itemManager;
 	private int overallSuppliesUsed;
 	private int overallCost;
-	private String menusAdded = "";
 	private JMenu temp;
 	private final SuppliesTrackSetAmountRow setAmountRow = new SuppliesTrackSetAmountRow();
 
-	@Inject
-	private Client client;
-
 	private final ClientThread clientThread;
 
-	SuppliesTrackerPanel(ClientThread clientThread, final ItemManager itemManager, ScheduledExecutorService executor)
+	SuppliesTrackerPanel(ClientThread clientThread, final ItemManager itemManager)
 	{
+		final JPanel overallPanel = new JPanel();
+
 		this.clientThread = clientThread;
-		this.executor = executor;
 		this.itemManager = itemManager;
 		setBorder(new EmptyBorder(6, 6, 6, 6));
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
@@ -138,7 +127,9 @@ class SuppliesTrackerPanel extends PluginPanel
 		final JMenu addAmmo = new JMenu("Ammo");
 		final JMenu addRune = new JMenu("Runes");
 
-		for (String list: SuppliesEnum.Food.MenuItemList())
+		String menusAdded = "";
+
+		for (String list : SuppliesEnum.Food.MenuItemList())
 		{
 			String[] item = list.split(" - #");
 			ActionListener ActionMenuListener = e -> clientThread.invokeLater(() ->
@@ -155,7 +146,7 @@ class SuppliesTrackerPanel extends PluginPanel
 			addFood.add(new JMenuItem(item[0])).addActionListener(ActionMenuListener);
 		}
 
-		for (String list: SuppliesEnum.Runes.MenuItemList())
+		for (String list : SuppliesEnum.Runes.MenuItemList())
 		{
 			String[] item = list.split(" - #");
 			ActionListener ActionMenuListener = e -> clientThread.invokeLater(() ->
@@ -172,7 +163,7 @@ class SuppliesTrackerPanel extends PluginPanel
 			addRune.add(new JMenuItem(item[0])).addActionListener(ActionMenuListener);
 		}
 
-		for (String list: SuppliesEnum.Potion.MenuItemList())
+		for (String list : SuppliesEnum.Potion.MenuItemList())
 		{
 			String[] item = list.split("#");
 			ActionListener ActionMenuListener = e -> clientThread.invokeLater(() ->
@@ -194,36 +185,36 @@ class SuppliesTrackerPanel extends PluginPanel
 				menusAdded = item[0];
 			}
 			else
-				{
+			{
 				temp.add(new JMenuItem(item[1])).addActionListener(ActionMenuListener);
 			}
 		}
-		for (String list: SuppliesEnum.Ammo.MenuItemList())
+		for (String list : SuppliesEnum.Ammo.MenuItemList())
 		{
-		String[] item = list.split("#");
-		ActionListener ActionMenuListener = e -> clientThread.invokeLater(() ->
-		{
-			try
+			String[] item = list.split("#");
+			ActionListener ActionMenuListener = e -> clientThread.invokeLater(() ->
 			{
-				processResult(Integer.parseInt(item[2].trim()));
+				try
+				{
+					processResult(Integer.parseInt(item[2].trim()));
+				}
+				catch (ExecutionException e1)
+				{
+					e1.printStackTrace();
+				}
+			});
+			if (!item[0].equals(menusAdded))
+			{
+				temp = new JMenu(item[0]);
+				addAmmo.add(temp);
+				temp.add(new JMenuItem(item[1])).addActionListener(ActionMenuListener);
+				menusAdded = item[0];
 			}
-			catch (ExecutionException e1)
+			else
 			{
-				e1.printStackTrace();
+				temp.add(new JMenuItem(item[1])).addActionListener(ActionMenuListener);
 			}
-		});
-		if (!item[0].equals(menusAdded))
-		{
-			temp = new JMenu(item[0]);
-			addAmmo.add(temp);
-			temp.add(new JMenuItem(item[1])).addActionListener(ActionMenuListener);
-			menusAdded = item[0];
 		}
-		else
-			{
-			temp.add( new JMenuItem(item[1])).addActionListener(ActionMenuListener);
-		}
-	}
 		addSupply.add(addAmmo);
 		addSupply.add(addFood);
 		addSupply.add(addPotion);
@@ -263,7 +254,7 @@ class SuppliesTrackerPanel extends PluginPanel
 		overallSuppliesUsed = 0;
 
 		//Iterate through supplies used and build rows
-		for (int itemId: supplies.keySet())
+		for (int itemId : supplies.keySet())
 		{
 			SuppliesTrackerItemEntry tempSuppleEntry = supplies.get(itemId);
 			String name = tempSuppleEntry.getName();
@@ -319,7 +310,6 @@ class SuppliesTrackerPanel extends PluginPanel
 		updateOverall();
 		logsContainer.validate();
 		logsContainer.repaint();
-
 	}
 
 	private void setAmountRow(SuppliesTrackRow row)
@@ -332,20 +322,20 @@ class SuppliesTrackerPanel extends PluginPanel
 			@Override
 			public void keyPressed(KeyEvent e)
 			{
-					int c = e.getKeyCode();
+				int c = e.getKeyCode();
 
-					if (c == KeyEvent.VK_ENTER)
-					{
-						clientThread.invokeLater(() -> SuppliesTrackerPlugin.getInstance().setAmount(row.itemId, Integer.valueOf(setAmountRow.amount.getText().replace(",", ""))));
+				if (c == KeyEvent.VK_ENTER)
+				{
+					clientThread.invokeLater(() -> SuppliesTrackerPlugin.getInstance().setAmount(row.itemId, Integer.valueOf(setAmountRow.amount.getText().replace(",", ""))));
 
-						((JFormattedTextField)e.getSource()).removeKeyListener( this );
-						setAmountRow.setVisible(false);
-					}
+					((JFormattedTextField) e.getSource()).removeKeyListener(this);
+					setAmountRow.setVisible(false);
+				}
 
-					if (c == KeyEvent.VK_BACK_SPACE && setAmountRow.amount.getText().length() == 1)
-					{
-						setAmountRow.amount.setText("0");
-					}
+				if (c == KeyEvent.VK_BACK_SPACE && setAmountRow.amount.getText().length() == 1)
+				{
+					setAmountRow.amount.setText("0");
+				}
 			}
 		};
 		setAmountRow.amount.addKeyListener(keyAdapter);
@@ -413,16 +403,15 @@ class SuppliesTrackerPanel extends PluginPanel
 			case MEAT_PIE:
 				itemId = HALF_A_MEAT_PIE;
 				break;
-
 		}
 		return itemId;
 	}
 
-	private int getSingleDose(String name) throws ExecutionException
+	private int getSingleDose(String name)
 	{
 		int itemId = 0;
 		List<ItemPrice> itemList = itemManager.search(name);
-		for (ItemPrice item: itemList)
+		for (ItemPrice item : itemList)
 		{
 			if (item.getName().equals(name))
 			{
@@ -438,9 +427,9 @@ class SuppliesTrackerPanel extends PluginPanel
 		overallSuppliesUsedLabel.setText(htmlLabel("Total Supplies: ", overallSuppliesUsed));
 		overallCostLabel.setText(htmlLabel("Total Cost: ", overallCost));
 	}
+
 	private void processResult(int itemID) throws ExecutionException
 	{
-
 		SuppliesTrackerPlugin.getInstance().buildEntries(itemID);
 	}
-	}
+}

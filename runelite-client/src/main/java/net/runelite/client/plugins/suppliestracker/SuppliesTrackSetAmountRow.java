@@ -24,24 +24,22 @@
  */
 package net.runelite.client.plugins.suppliestracker;
 
-
 import javax.swing.JFormattedTextField;
 import javax.swing.JPanel;
 import javax.swing.text.NumberFormatter;
 import java.awt.BorderLayout;
 
-
 class SuppliesTrackSetAmountRow extends JPanel
 {
 	JFormattedTextField amount;
 
-		SuppliesTrackSetAmountRow ()
-		{
-			NumberFormatter formatter = new NumberFormatter();
-			formatter.setAllowsInvalid(false);
-			amount = new JFormattedTextField(formatter);
-			setLayout(new BorderLayout());
-			amount.setText("Enter Amount");
-			add(amount);
-		}
+	SuppliesTrackSetAmountRow()
+	{
+		NumberFormatter formatter = new NumberFormatter();
+		formatter.setAllowsInvalid(false);
+		amount = new JFormattedTextField(formatter);
+		setLayout(new BorderLayout());
+		amount.setText("Enter Amount");
+		add(amount);
+	}
 }

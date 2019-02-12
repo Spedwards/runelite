@@ -24,12 +24,10 @@
  */
 package net.runelite.client.plugins.suppliestracker;
 
-
 import net.runelite.client.game.AsyncBufferedImage;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import java.awt.BorderLayout;
-
 
 class SuppliesTrackRow extends JPanel
 {
